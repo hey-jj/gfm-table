@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
+      - run: cargo build --locked
+      - run: cargo test --locked
+      - run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo fmt --check
+
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup toolchain install 1.56.0 --profile minimal
+      # rust-version is a promise about the shipped library, so this job builds it and runs the
+      # examples in its docs on that exact release. The full test suite runs on stable in the gate
+      # job above. Do not narrow this to `check --lib`: that compiles no doctests, and a floor that
+      # holds for the library while the examples a reader copies go untested is not a floor.
+      #
+      # `cargo test --doc` compiles dev-dependencies. It cannot run against this manifest as
+      # written, because the pinned proptest has no release that builds on 1.56.0, so the job would
+      # fail on a dev-dependency rather than on anything this crate does. The checkout is a
+      # throwaway copy of the tree, so the table is deleted from it here and the two commands then
+      # see what a consumer sees. Nothing under src/ or tests/ is touched and no other job sees the
+      # edit. Deleting the table changes the resolved dependency set, so --locked cannot be used
+      # below, unlike the gate job.
+      - name: Delete the dev-dependencies table from this checkout
+        run: |
+          awk 'BEGIN { keep = 1 }
+               /^\[/ { keep = ($0 != "[dev-dependencies]") }
+               keep' Cargo.toml > Cargo.toml.stripped
+          mv Cargo.toml.stripped Cargo.toml
+          cat Cargo.toml
+      - run: cargo +1.56.0 build --lib
+      - run: cargo +1.56.0 test --doc
