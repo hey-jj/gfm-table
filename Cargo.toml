@@ -1,0 +1,16 @@
+[package]
+name = "gfm-table"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.56.0"
+license = "MIT"
+description = "Render rows of strings as a GFM table, escaping pipes and line breaks so it parses."
+repository = "https://github.com/hey-jj/gfm-table"
+readme = "README.md"
+keywords = ["markdown", "gfm", "table", "github", "escaping"]
+categories = ["text-processing", "no-std"]
+include = ["src", "tests", "README.md", "LICENSE", "CHANGELOG.md"]
+
+[dev-dependencies]
+proptest = "1"
+pulldown-cmark = "0.13"
