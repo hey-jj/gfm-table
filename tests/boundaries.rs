@@ -72,7 +72,7 @@ fn a_measure_that_changes_between_calls_still_renders() {
     let mut table = Table::new();
     table.push_row(["alpha", "beta"]);
     table.push_row(["gamma", "delta"]);
-    table.set_cell_width(varying);
+    let table = table.with_cell_width(varying);
 
     let out = table.render();
     assert_eq!(out.lines().count(), 3);
@@ -89,8 +89,7 @@ fn a_measure_of_zero_or_usize_max_never_underflows_the_padding() {
         table.push_row(["a", "\u{1f600}\u{1f600}"]);
         table.push_row(["", "b"]);
         table.set_alignments([Alignment::Center, Alignment::Right]);
-        table.set_cell_width(measure);
-        let out = table.render();
+        let out = table.with_cell_width(measure).render();
         assert_eq!(out.lines().count(), 3);
         assert_eq!(out.lines().filter(|line| !line.ends_with('|')).count(), 0);
     }
@@ -111,8 +110,9 @@ fn a_wide_table_of_wide_text_holds_its_invariants() {
 
 #[test]
 fn a_table_can_be_moved_between_threads_and_shared_across_them() {
-    // The width function is a fn pointer and not a closure, which is what keeps
-    // these three impls automatic. A boxed trait object would drop two of them.
+    // The default width function is a fn pointer and not a closure, which is
+    // what keeps these three impls automatic. A boxed trait object would drop
+    // two of them.
     fn assert_bounds<T: Send + Sync + Clone + 'static>() {}
     assert_bounds::<Table>();
     assert_bounds::<Alignment>();

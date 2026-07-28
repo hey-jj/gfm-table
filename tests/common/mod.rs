@@ -85,7 +85,7 @@ pub fn cells_of(line: &str) -> Vec<String> {
 }
 
 /// Checks invariants 1 through 6 and 15 for a table rendered with `measure`.
-pub fn check_invariants(table: &Table, measure: fn(&str) -> usize) {
+pub fn check_invariants<F: Fn(&str) -> usize>(table: &Table<F>, measure: fn(&str) -> usize) {
     let out = table.render();
     let columns = table.columns();
 
@@ -124,7 +124,7 @@ pub fn check_invariants(table: &Table, measure: fn(&str) -> usize) {
 
 /// Checks invariant 7: the output parses as one table with the shape and the
 /// alignments the caller asked for.
-pub fn check_parses(table: &Table, expected: &[Alignment]) -> ParsedTable {
+pub fn check_parses<F: Fn(&str) -> usize>(table: &Table<F>, expected: &[Alignment]) -> ParsedTable {
     let out = table.render();
     let mut tables = parse_tables(&out);
     assert_eq!(tables.len(), 1);

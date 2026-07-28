@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.0
+
+Breaking.
+
+- `set_cell_width` becomes `with_cell_width`. It consumes the table and returns
+  it, and it takes any `Fn(&str) -> usize` rather than a bare function pointer,
+  so a closure carrying a width table or a locale can be passed. `Table` gained
+  a type parameter for the measure, defaulted to `fn(&str) -> usize`, which
+  leaves `Table::new` and every other method as they were.
+
+Other changes.
+
+- `Alignment` derives `PartialOrd` and `Ord`, so it can sit in a sorted
+  collection.
+- `no-std` joins the keywords, so a keyword search finds the crate the way the
+  `no-std` category already did. `table` makes way for it, since the crate name
+  and the description both carry that word already.
+- Dual licensed under MIT OR Apache-2.0. `LICENSE` is now `LICENSE-MIT`
+  and `LICENSE-APACHE` sits beside it. 0.1.0 stays MIT only.
+- README states the MSRV in a `## Requirements` section rather than in a line
+  under what the crate does not do.
+
 ## 0.1.0
 
 First release.

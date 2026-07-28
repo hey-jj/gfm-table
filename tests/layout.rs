@@ -91,7 +91,7 @@ fn the_measure_decides_the_width_not_the_byte_count() {
     table.push_row(["\u{4e2d}\u{6587}"]);
     assert_eq!(table.render(), "| \u{4e2d}\u{6587} |\n| -- |");
 
-    table.set_cell_width(str::len);
+    let table = table.with_cell_width(str::len);
     assert_eq!(table.render(), "| \u{4e2d}\u{6587} |\n| ------ |");
 }
 
@@ -179,7 +179,7 @@ fn the_invariants_hold_for_a_mixed_table() {
     table.set_alignments([Alignment::Left, Alignment::Center, Alignment::Right]);
     check_invariants(&table, |cell| cell.chars().count());
 
-    table.set_cell_width(|cell| cell.encode_utf16().count());
+    let table = table.with_cell_width(|cell| cell.encode_utf16().count());
     check_invariants(&table, |cell| cell.encode_utf16().count());
 }
 
@@ -199,8 +199,7 @@ fn the_output_string_is_allocated_once_at_the_exact_length() {
         |cell: &str| cell.encode_utf16().count(),
         str::len,
     ] {
-        table.set_cell_width(measure);
-        let out = table.render();
+        let out = table.clone().with_cell_width(measure).render();
         assert_eq!(out.capacity(), out.len());
     }
 }

@@ -26,7 +26,7 @@ pub(crate) struct Layout {
 }
 
 impl Layout {
-    pub(crate) fn of(table: &Table) -> Self {
+    pub(crate) fn of<F: Fn(&str) -> usize>(table: &Table<F>) -> Self {
         let columns = table.columns();
         if columns == 0 {
             return Layout {
@@ -96,7 +96,11 @@ impl Layout {
     }
 }
 
-pub(crate) fn write_table<W: Write>(table: &Table, layout: &Layout, out: &mut W) -> fmt::Result {
+pub(crate) fn write_table<F, W: Write>(
+    table: &Table<F>,
+    layout: &Layout,
+    out: &mut W,
+) -> fmt::Result {
     // No columns means no table. A run of empty lines is not something a caller
     // can paste into a document.
     if layout.columns == 0 {

@@ -225,11 +225,10 @@ proptest! {
         aligns in alignments(),
     ) {
         let characters = build(&rows, &aligns).render();
-        let mut table = build(&rows, &aligns);
-        table.set_cell_width(|cell| cell.encode_utf16().count());
-        prop_assert_eq!(table.render(), characters.clone());
-        table.set_cell_width(str::len);
-        prop_assert_eq!(table.render(), characters);
+        let utf16 = build(&rows, &aligns).with_cell_width(|cell| cell.encode_utf16().count());
+        prop_assert_eq!(utf16.render(), characters.clone());
+        let bytes = build(&rows, &aligns).with_cell_width(str::len);
+        prop_assert_eq!(bytes.render(), characters);
     }
 
     #[test]

@@ -23,7 +23,7 @@ use crate::render;
 /// table.set_alignment(Alignment::Center);
 /// assert_eq!(table.render(), "|  ab |\n| :-: |");
 /// ```
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Alignment {
     /// No colon. The column is padded on the right, like [`Alignment::Left`],
     /// and the reader applies its own default.
@@ -71,6 +71,11 @@ enum Alignments {
 /// The first row pushed is the header. Cells are escaped once, when their row is
 /// added, so rendering twice does not escape twice.
 ///
+/// `F` is the type of the width measure. It defaults to a plain function
+/// pointer, which is what [`Table::new`] installs, and
+/// [`Table::with_cell_width`] exchanges it for any `Fn(&str) -> usize`,
+/// closures included.
+///
 /// # Examples
 ///
 /// ```
@@ -86,10 +91,10 @@ enum Alignments {
 /// );
 /// ```
 #[derive(Clone)]
-pub struct Table {
+pub struct Table<F = fn(&str) -> usize> {
     pub(crate) rows: Vec<Vec<String>>,
     alignments: Alignments,
-    pub(crate) measure: fn(&str) -> usize,
+    pub(crate) measure: F,
 }
 
 fn count_characters(cell: &str) -> usize {
@@ -115,7 +120,9 @@ impl Table {
             measure: count_characters,
         }
     }
+}
 
+impl<F> Table<F> {
     /// Adds one row. The first row added is the header.
     ///
     /// Rows may differ in length. The table is as wide as its widest row and
@@ -190,11 +197,17 @@ impl Table {
         self
     }
 
-    /// Sets the function that measures a cell for padding.
+    /// Takes the table and returns it measuring cells with `measure`.
     ///
     /// The default counts `char` values. Pass `|s| s.encode_utf16().count()` for
     /// UTF-16 code units, or a display width function from a crate of your
-    /// choice. The function runs once per cell per render.
+    /// choice. Any `Fn(&str) -> usize` will do, so a closure holding a width
+    /// table or a locale is as welcome as a bare function. The function runs
+    /// once per cell per render.
+    ///
+    /// The measure is part of the table's type, which is why this consumes the
+    /// table rather than setting a field. Rows and alignments move across
+    /// untouched.
     ///
     /// A measurement larger than the cell's length in bytes is clamped to that
     /// length. Every plausible metric returns at most the byte count, so the
@@ -216,12 +229,19 @@ impl Table {
     /// table.push_row(["\u{1f600}"]);
     /// assert_eq!(table.render(), "| \u{1f600} |\n| - |");
     ///
-    /// table.set_cell_width(|cell| cell.encode_utf16().count());
+    /// let table = table.with_cell_width(|cell| cell.encode_utf16().count());
     /// assert_eq!(table.render(), "| \u{1f600} |\n| -- |");
     /// ```
-    pub fn set_cell_width(&mut self, measure: fn(&str) -> usize) -> &mut Self {
-        self.measure = measure;
-        self
+    #[must_use]
+    pub fn with_cell_width<G>(self, measure: G) -> Table<G>
+    where
+        G: Fn(&str) -> usize,
+    {
+        Table {
+            rows: self.rows,
+            alignments: self.alignments,
+            measure,
+        }
     }
 
     /// Number of rows, header included.
@@ -286,6 +306,16 @@ impl Table {
         self.rows.iter().map(Vec::len).max().unwrap_or(0)
     }
 
+    /// Alignment for one column, after fitting to the column count.
+    pub(crate) fn alignment_at(&self, column: usize) -> Alignment {
+        match &self.alignments {
+            Alignments::Every(alignment) => *alignment,
+            Alignments::PerColumn(list) => list.get(column).copied().unwrap_or(Alignment::None),
+        }
+    }
+}
+
+impl<F: Fn(&str) -> usize> Table<F> {
     /// Renders the table as Markdown.
     ///
     /// Lines are joined with `\n` and there is no trailing newline. Code
@@ -315,14 +345,6 @@ impl Table {
         let _ = render::write_table(self, &layout, &mut out);
         out
     }
-
-    /// Alignment for one column, after fitting to the column count.
-    pub(crate) fn alignment_at(&self, column: usize) -> Alignment {
-        match &self.alignments {
-            Alignments::Every(alignment) => *alignment,
-            Alignments::PerColumn(list) => list.get(column).copied().unwrap_or(Alignment::None),
-        }
-    }
 }
 
 /// An empty table, the same as [`Table::new`].
@@ -333,9 +355,10 @@ impl Default for Table {
 }
 
 /// Prints the stored rows and the alignments. The width function is left out
-/// because a function pointer's `Debug` is an address, which would make the
-/// output differ between runs.
-impl fmt::Debug for Table {
+/// because it need not implement `Debug` at all, and the default one is a
+/// function pointer whose `Debug` is an address, which would make the output
+/// differ between runs.
+impl<F> fmt::Debug for Table<F> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("Table")
@@ -349,7 +372,7 @@ impl fmt::Debug for Table {
 ///
 /// Formatting flags such as width, fill, and precision are ignored. A value that
 /// spans several lines has no sensible response to them.
-impl fmt::Display for Table {
+impl<F: Fn(&str) -> usize> fmt::Display for Table<F> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         let layout = render::Layout::of(self);
         render::write_table(self, &layout, formatter)
@@ -393,7 +416,7 @@ where
 ///
 /// assert_eq!(table.len(), 3);
 /// ```
-impl<R, S> Extend<R> for Table
+impl<F, R, S> Extend<R> for Table<F>
 where
     R: IntoIterator<Item = S>,
     S: AsRef<str>,

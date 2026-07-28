@@ -8,7 +8,7 @@ row, and each column carries the alignment you ask for.
 
 ```toml
 [dependencies]
-gfm-table = "0.1.0"
+gfm-table = "0.2.0"
 ```
 
 ## Example
@@ -58,14 +58,26 @@ own.
   no output.
 - It does not add a trailing newline. Code appending to a document adds the
   blank line the surrounding Markdown needs.
-- It does not bundle a display width table. `set_cell_width` takes your
+- It does not bundle a display width table. `with_cell_width` takes your
   function, and the default counts `char` values.
 - It does not draw tables for a terminal. `tabled` does that, with different
   delimiters and different rules.
 - It does not parse Markdown or read a table back into rows.
 
-Zero dependencies. `#![no_std]` with `alloc`. Rust 1.56 or newer.
+## Requirements
+
+Zero dependencies. `#![no_std]` with `alloc`, so an allocator is the only thing
+needed.
+
+MSRV is 1.56.0, which is what edition 2021 needs. A CI job builds the library and
+runs the doctests on that exact release, so the floor is tested and not asserted.
+The full test suite runs on stable.
 
 ## License
 
-MIT. Copyright Justin Jones.
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or the
+[MIT license](LICENSE-MIT) at your option.
+
+Unless you state otherwise, any contribution you intentionally submit for
+inclusion in this crate, as defined in the Apache-2.0 license, is dual licensed
+as above, with no additional terms or conditions.

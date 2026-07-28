@@ -44,13 +44,29 @@ fn the_readme_install_line_matches_the_manifest_version() {
 
 #[test]
 fn the_readme_names_the_manifest_rust_version() {
+    // The claim is that the README states the manifest's MSRV, not that it
+    // states it in any one sentence. So the version is what is pinned, in
+    // either the full `1.56.0` form or the `1.56` one, and the prose around it
+    // is free to change.
     let rust_version = manifest_value("rust-version");
-    let major_minor = rust_version.trim_end_matches(".0");
-    assert_eq!(
-        README
-            .matches(&format!("Rust {major_minor} or newer"))
-            .count(),
-        1
+    assert!(!rust_version.is_empty(), "the manifest names no MSRV");
+    let mut parts = rust_version.split('.');
+    let short = match (parts.next(), parts.next()) {
+        (Some(major), Some(minor)) => format!("{major}.{minor}"),
+        _ => rust_version.clone(),
+    };
+
+    // A digit or a dot after the match would make it a different version, so
+    // `1.56` is not found inside `1.560` or inside `1.56.1`.
+    let names_it = |wanted: &str| {
+        README.match_indices(wanted).any(|(at, _)| {
+            let after = &README[at + wanted.len()..];
+            !after.starts_with(|next: char| next == '.' || next.is_ascii_digit())
+        })
+    };
+    assert!(
+        names_it(&rust_version) || names_it(&short),
+        "the README does not name the manifest rust-version {rust_version}"
     );
 }
 

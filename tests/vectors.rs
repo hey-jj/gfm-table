@@ -28,7 +28,9 @@ fn render(vector: &Vector) -> String {
     }
     table.set_alignments(vector.alignments.to_vec());
     if vector.utf16 {
-        table.set_cell_width(|cell| cell.encode_utf16().count());
+        return table
+            .with_cell_width(|cell| cell.encode_utf16().count())
+            .render();
     }
     table.render()
 }

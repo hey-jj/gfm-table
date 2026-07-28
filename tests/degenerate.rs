@@ -130,15 +130,14 @@ fn alignments_set_before_the_rows_still_reach_them() {
 #[test]
 fn a_measure_of_zero_falls_back_to_the_alignment_minimum() {
     let mut table = table_of(&[&["wide", "wider"]]);
-    table.set_cell_width(|_| 0);
     table.set_alignments([Alignment::None, Alignment::Center]);
+    let table = table.with_cell_width(|_| 0);
     assert_eq!(table.render(), "| wide  |   wider  |\n| - | :-: |");
 }
 
 #[test]
 fn a_measure_of_usize_max_is_clamped_to_the_byte_length() {
-    let mut table = table_of(&[&["\u{e9}"]]);
-    table.set_cell_width(|_| usize::MAX);
+    let table = table_of(&[&["\u{e9}"]]).with_cell_width(|_| usize::MAX);
     assert_eq!(table.render(), "| \u{e9} |\n| -- |");
 }
 
@@ -173,7 +172,7 @@ fn display_writes_the_same_bytes_as_render() {
 fn debug_prints_the_rows_and_the_alignments_and_repeats_itself() {
     let mut table = table_of(&[&["a|b"]]);
     table.set_alignments([Alignment::Right]);
-    table.set_cell_width(|_| 1);
+    let table = table.with_cell_width(|_| 1);
     let printed = format!("{:?}", table);
     assert_eq!(printed, format!("{:?}", table.clone()));
     assert_eq!(
